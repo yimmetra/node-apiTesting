@@ -17,6 +17,7 @@
     "express": "^4.17.1",
     "joi": "^17.5.0",
     "mongoose": "^6.0.15",
+    "mongoose-paginate-v2": "^1.4.2",
     "nodemon": "^2.0.15"
   },
   "type": "module"

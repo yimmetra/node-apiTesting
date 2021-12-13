@@ -1,5 +1,6 @@
 // const mongoose = require('mongoose');
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2"
 
 const BookSchema = mongoose.Schema({
     title: {
@@ -17,6 +18,7 @@ const BookSchema = mongoose.Schema({
 }, {
     timestamps: { createdAt: 'created_at',updatedAt:'updated_at' }
 });
+BookSchema.plugin(mongoosePaginate)
 
 var Book = mongoose.model('book', BookSchema);
 
