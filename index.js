@@ -10,6 +10,7 @@ import {HttpInternalServerError,HttpError,HttpBadRequest,HttpNotFound} from './e
 
 
 
+
 const app = express();
 
 var router = express.Router();
@@ -131,7 +132,33 @@ router.route("/book/:id").delete(async (req,res,next)=>{
     Book.findByIdAndDelete(req.params.id,)
 })
 
+
 router.route("/book-date").get(async (req,res,next)=>{
+
+    queryRequest(req)
+    let reqObject=req.query;
+    let reqQuery;
+    let titleQ=`/.*`+reqObject['title']+`.*/`
+    // console.log(req.query)
+
+    if (!reqObject.keys) {
+         reqQuery = {
+            title:  new RegExp('.*' + reqObject['title'] + '.*'),
+        }
+    }
+    if(req.body.start_date&&req.body.end_date){
+        reqQuery.created_at={
+            $gte: req.body.start_date,
+            $lt: req.body.end_date
+        }
+    }
+
+    // console.log(reqObject['start_date'],"start_date")
+    //
+    //
+    // console.log(reqQuery,"log2")
+
+
 
     const myCustomLabels = {
         totalDocs: 'total_data',
@@ -148,8 +175,8 @@ router.route("/book-date").get(async (req,res,next)=>{
     };
 
     const options = {
-        page: 2,
-        limit: 2,
+        page: 1,
+        limit: 10,
         // offset: 3,
         collation: {
             locale: 'en',
@@ -164,12 +191,7 @@ router.route("/book-date").get(async (req,res,next)=>{
           $lt: '2021-12-9'
       }
   }).populate('author');
-    const book=await Book.paginate({
-        created_at: {
-            $gte: '2021-12-01',
-            $lt: '2021-12-19'
-        }
-    },options)
+    const book=await Book.paginate(reqQuery,options)
 
 
 
@@ -204,3 +226,41 @@ mongoose.connect(url, { useUnifiedTopology: true, useNewUrlParser: true  }, () =
 
 app.listen(3000);
 
+
+
+const queryRequest=(req)=>{
+
+    let reqObject=req.query;
+
+    let reqQuery={};
+
+    let titleQ=`/.*`+reqObject['title']+`.*/`
+
+    console.log(reqQuery.params)
+
+    if (!reqObject.keys) {
+        // reqQuery = {
+        //     title:  new RegExp('.*' + reqObject['title'] + '.*'),
+        // }
+        Object.keys(reqObject).forEach(key=>{
+            console.log(key,"ke1")
+
+            reqQuery[key]=[]
+                Object.keys(reqObject[key]).forEach(_key=>{
+                    reqQuery[key].push(_key)
+                })
+        })
+    }
+
+    console.log(reqQuery,"we tesitng")
+
+
+    // if(req.body.start_date&&req.body.end_date){
+    //     reqQuery.created_at={
+    //         $gte: req.body.start_date,
+    //         $lt: req.body.end_date
+    //     }
+    // }
+
+    return reqQuery;
+}
