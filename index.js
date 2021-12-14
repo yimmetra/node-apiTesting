@@ -9,6 +9,7 @@ import {AttachResponder,ErrorHandler} from './config/errorConfig.js'
 import {HttpInternalServerError,HttpError,HttpBadRequest,HttpNotFound} from './error.js'
 
 
+
 const app = express();
 
 var router = express.Router();
@@ -124,6 +125,56 @@ router.route("/book/:id").put(async (req,res,next)=>{
     // Book.findByIdAndUpdate(req.params.id,{title:req.body.title}, {upsert: true},((err, doc) => {
     //     return res.send(doc);
     // }))
+})
+
+router.route("/book/:id").delete(async (req,res,next)=>{
+    Book.findByIdAndDelete(req.params.id,)
+})
+
+router.route("/book-date").get(async (req,res,next)=>{
+
+    const myCustomLabels = {
+        totalDocs: 'total_data',
+        docs: 'data_response',
+        limit: 'per_page',
+        page: 'current_page',
+        nextPage: 'next',
+        prevPage: 'prev',
+        totalPages: 'page_count',
+        pagingCounter: 'paging_counter',
+        meta: 'paginator',
+        hasPrevPage:'has_prev_page',
+        hasNextPage:'has_next_page',
+    };
+
+    const options = {
+        page: 2,
+        limit: 2,
+        // offset: 3,
+        collation: {
+            locale: 'en',
+        },
+        // populate:["author"],
+        customLabels:myCustomLabels
+    };
+
+  const book1=await  Book.find({ //query today up to tonight
+      created_at: {
+          $gte: '2021-12-01',
+          $lt: '2021-12-9'
+      }
+  }).populate('author');
+    const book=await Book.paginate({
+        created_at: {
+            $gte: '2021-12-01',
+            $lt: '2021-12-19'
+        }
+    },options)
+
+
+
+    res.status(200)
+    res.send(book)
 })
 
 
