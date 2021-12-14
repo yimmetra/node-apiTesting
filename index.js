@@ -5,6 +5,8 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import Author from "./model/Author.js";
 import {Book} from "./model/Book.js";
+import {AttachResponder,ErrorHandler} from './config/errorConfig.js'
+import {HttpInternalServerError,HttpError,HttpBadRequest,HttpNotFound} from './error.js'
 
 
 const app = express();
@@ -115,6 +117,15 @@ router.route('/book').get(async (req,res)=>{
 
 })
 
+router.route("/book/:id").put(async (req,res,next)=>{
+
+    return res.respond.badRequest(HttpBadRequest, {reason: 'User ID not found'})
+
+    // Book.findByIdAndUpdate(req.params.id,{title:req.body.title}, {upsert: true},((err, doc) => {
+    //     return res.send(doc);
+    // }))
+})
+
 
 router.route("/book_find").get(async (req,res,next)=>{
     const options = {
@@ -124,17 +135,21 @@ router.route("/book_find").get(async (req,res,next)=>{
             locale: 'en',
         },
     };
+    console.log(req.query,"helo")
 
-    Book.paginate({},options,(err,result)=>{
+    Book.paginate(req.query,options,(err,result)=>{
         res.send({message:result})
     })
 })
-
+app.use(AttachResponder)
 
 app.use('/api', router);
+
+app.use(ErrorHandler)
 
 mongoose.connect(url, { useUnifiedTopology: true, useNewUrlParser: true  }, () => {
     console.log("Connected to DB")
 });
 
 app.listen(3000);
+
