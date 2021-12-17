@@ -8,7 +8,13 @@ const AuthorSchema = mongoose.Schema({
     },
     books: [
         { type: mongoose.Schema.Types.ObjectId, ref: 'book' }
-    ]
+    ],
+    password:{
+        type:String
+    },
+    token:{
+        type:String
+    }
 }, {
     timestamps: { createdAt: 'created_at',updatedAt:'updated_at' }
 });

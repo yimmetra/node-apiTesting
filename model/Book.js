@@ -2,6 +2,12 @@
 import mongoose from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2"
 
+const TypeBookSchema=mongoose.Schema({
+    name:{
+        type: String
+    }
+})
+
 const BookSchema = mongoose.Schema({
     title: {
         type: String,
@@ -14,7 +20,8 @@ const BookSchema = mongoose.Schema({
     drink: {
         type: String,
         enum: ['Coffee', 'Tea']
-    }
+    },
+    book_type:[TypeBookSchema]
 }, {
     timestamps: { createdAt: 'created_at',updatedAt:'updated_at' }
 });

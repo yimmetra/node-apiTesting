@@ -7,15 +7,29 @@ import Author from "./model/Author.js";
 import {Book} from "./model/Book.js";
 import {AttachResponder,ErrorHandler} from './config/errorConfig.js'
 import {HttpInternalServerError,HttpError,HttpBadRequest,HttpNotFound} from './error.js'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs';
+import cookieParser from 'cookie-parser';
+import  swaggerUi  from "swagger-ui-express"
+import swaggerJsdoc from "swagger-jsdoc"
+import {swaggerOptions} from "./config/swaggerOption.js"
+import fileUpload from 'express-fileupload';
 
-
-
+const specs = swaggerJsdoc(swaggerOptions);
 
 const app = express();
+
+app.use(fileUpload({
+    createParentPath: true
+}));
+
+
 
 var router = express.Router();
 
 var url='mongodb+srv://metrayim:q1w2e3r4@tracluster.novpf.mongodb.net/Testing?retryWrites=true&w=majority'
+
+app.use(cookieParser())
 
 
 app.use(bodyParser.json());
@@ -24,6 +38,38 @@ app.use(cors({
     exposedHeaders: ["Link"]
 }));
  // app.use(express.static(__dirname + '/public'));
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(specs));
+
+router.post("/upload-avatar",async (req,res)=>{
+    try {
+        if(!req.files) {
+            res.send({
+                status: false,
+                message: 'No file uploaded'
+            });
+        } else {
+            //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+            let avatar = req.files.avatar;
+
+            //Use the mv() method to place the file in upload directory (i.e. "uploads")
+            avatar.mv('./uploads/' + avatar.name);
+
+            //send response
+            res.send({
+                status: true,
+                message: 'File is uploaded',
+                data: {
+                    name: avatar.name,
+                    mimetype: avatar.mimetype,
+                    size: avatar.size
+                }
+            });
+        }
+    } catch (err) {
+        res.status(500).send(err);
+    }
+})
 
 // middleware to use for all requests
 router.use(function(req, res, next) {
@@ -32,7 +78,6 @@ router.use(function(req, res, next) {
     next(); // make sure we go to the next routes and don't stop here
 });
 
-// test route to make sure everything is working (accessed at GET http://localhost:8080/api)
 router.get('/test', function(req, res) {
     let arr = [3, 4, 5, 6];
     let modifiedArr = arr.map(function(element){
@@ -42,6 +87,8 @@ router.get('/test', function(req, res) {
     console.log(modifiedArr); // [9, 12, 15, 18]
     res.json({ message: modifiedArr });
 });
+
+
 
 
 router.route('/author')
@@ -62,7 +109,7 @@ router.route('/author')
 
 router.route('/book')
     .post((req,res)=>{
-        var book=new Book({title:req.body.title,author:'61b06ad9a0a5a66dd1c771d8',drink:req.body.drink})
+        var book=new Book({title:req.body.title,author:'61b06ad9a0a5a66dd1c771d8',drink:req.body.drink,book_type:{name:"Horror"}})
         let error=book.validateSync();
         if(error){
             let {message}=error;
@@ -132,18 +179,37 @@ router.route("/book/:id").delete(async (req,res,next)=>{
     Book.findByIdAndDelete(req.params.id,)
 })
 
+router.route("/book-pu").get(async (req,res,next)=>{
+    const book= await Book.find().populate('author',null,null,{name:'testina'});
+    res.send(book)
+})
 
 router.route("/book-date").get(async (req,res,next)=>{
 
-    queryRequest(req)
+    // queryRequest(req)
     let reqObject=req.query;
     let reqQuery;
-    let titleQ=`/.*`+reqObject['title']+`.*/`
+    let titleQ=`/.*`+reqObject['title']?reqObject["title"]:""+`.*/`
     // console.log(req.query)
 
     if (!reqObject.keys) {
          reqQuery = {
             title:  new RegExp('.*' + reqObject['title'] + '.*'),
+             // book_type:{
+             //     $elemMatch : {
+             //         name:new RegExp('.*' + reqObject['book_type'] + '.*'),
+             //     }
+             // },
+             authors:{
+                $elemMatch: {
+                    name:reqObject['username'],
+                }
+             }
+             // 'photos': {
+             //     $elemMatch : {
+             //         'text' : 'good'
+             //     }
+             // }
         }
     }
     if(req.body.start_date&&req.body.end_date){
@@ -152,6 +218,7 @@ router.route("/book-date").get(async (req,res,next)=>{
             $lt: req.body.end_date
         }
     }
+    console.log(reqQuery,"my query")
 
     // console.log(reqObject['start_date'],"start_date")
     //
@@ -176,12 +243,12 @@ router.route("/book-date").get(async (req,res,next)=>{
 
     const options = {
         page: 1,
-        limit: 10,
+        limit: 20,
         // offset: 3,
         collation: {
             locale: 'en',
         },
-        // populate:["author"],
+         populate:["author"],
         customLabels:myCustomLabels
     };
 
@@ -214,6 +281,74 @@ router.route("/book_find").get(async (req,res,next)=>{
         res.send({message:result})
     })
 })
+
+
+router.route("/register").post(async (req,res,next)=>{
+    try{
+        const {username,password}=req.body;
+        if(!(username && password )){
+           return  res.status(400).send("All input is required");
+        }
+        const author=await Author.findOne({name:username})
+        console.log(author,"hello")
+        if(author){
+            return res.status(409).send("user alredy exist, Pleas login")
+        }
+
+        //Encrypt user password
+       const encryptedPassword = await bcrypt.hash(password, 10);
+
+        const newAuthor=await Author.create({
+            name:username,
+            password:encryptedPassword
+        })
+
+        const token=jwt.sign({
+            user_id:newAuthor._id
+        },"dkdkkdkdkd")
+
+        newAuthor.token=token;
+
+        res.status(201).json(newAuthor)
+
+
+    }catch (err){
+        console.log("Error:",err)
+    }
+
+})
+
+router.route("/login").post(async (req,res,next)=>{
+
+})
+
+
+router.route("/setcookies").get(async (req,res,next)=>{
+    try {
+        res.cookie("username","john",{maxAge:90000,httpOnly:true});
+        res.send("Cookie has been set")
+    }catch (err){
+        res.send(err);
+    }
+})
+
+router.route("/getcookies").get(async (req,res,next)=>{
+    try {
+
+        var username=req.cookies['username']
+
+        if(username){
+            return res.send(username);
+        }
+
+        return res.send('No cookie found');
+
+    }catch (err){
+        res.send(err);
+    }
+})
+
+
 app.use(AttachResponder)
 
 app.use('/api', router);
@@ -224,7 +359,7 @@ mongoose.connect(url, { useUnifiedTopology: true, useNewUrlParser: true  }, () =
     console.log("Connected to DB")
 });
 
-app.listen(3000);
+app.listen(4000);
 
 
 
