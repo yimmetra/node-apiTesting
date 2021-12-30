@@ -14,6 +14,8 @@ import  swaggerUi  from "swagger-ui-express"
 import swaggerJsdoc from "swagger-jsdoc"
 import {swaggerOptions} from "./config/swaggerOption.js"
 import fileUpload from 'express-fileupload';
+import {User} from "./model/User.js";
+import {BookBuilder} from "./payload/testing.js";
 
 const specs = swaggerJsdoc(swaggerOptions);
 
@@ -40,6 +42,39 @@ app.use(cors({
  // app.use(express.static(__dirname + '/public'));
 app.use('/api-docs', swaggerUi.serve);
 app.get('/api-docs', swaggerUi.setup(specs));
+
+router.get("/hello",async (req,res)=>{
+    try{
+
+
+        const doc = new User({ name: 'Vahhhh', picture: '/123yyyy.png' });
+        // doc.picture; // 'https://s3.amazonaws.com/mybucket/123.png'
+
+        console.log(doc.picture,"hello")
+        console.log(doc.get("picture"))
+        // doc.aggregate
+        doc.toObject({ getters: true }).picture; // '/123.png'
+
+       let bookBuilder=new BookBuilder("hello work")
+           .setType(null)
+           .setPrice(1000).build();
+            console.log(bookBuilder)
+
+         doc.save();
+        return res.send({response:doc})
+
+
+    }catch (err){
+        console.log(err)
+    }
+})
+
+router.get("/get_hello",async (req,res,next)=>{
+
+    // const user=await User.aggregate([{$match: {_id: mongoose.Types.ObjectId('61c3daadebc67a94fa054038')}}])
+    const user=await User.find({$text:{$search:"val"}, $caseSensitive: true})
+    return res.send({response: user})
+})
 
 router.post("/upload-avatar",async (req,res)=>{
     try {
